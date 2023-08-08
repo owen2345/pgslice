@@ -6,6 +6,35 @@ Postgres partitioning as easy as pie. Works great for both new and existing tabl
 
 [![Build Status](https://github.com/ankane/pgslice/workflows/build/badge.svg?branch=master)](https://github.com/ankane/pgslice/actions)
 
+## Customizations
+### Prep     
+Indexes can be excluded while generating the new table for the faster table filling (table filling without indexes is way faster)
+```bash
+pgslice prep <table> --no-partition --noindex
+```
+
+### Indexes    
+Indexes skipped while generating table can be added later (Once copied all data to the new table)
+```bash
+pgslice index <table>
+pgslice index <table> --print # Prints the indexes without performing them to be performed manually
+```
+
+### Triggers    
+Triggers can be added via:
+```sh
+pgslice trigger <table> # syncs table records (create/update/delete) to <table>_intermediate
+pgslice trigger <table> --swapped # if table was already swapped: syncs current table to <table>_retired table
+pgslice trigger <table> --drop # drops the exist trigger
+```
+
+### Fill     
+Added the ability to ignore duplicated records while filling records caused by triggers (syncing) using `ON CONFLICT (id) DO NOTHING`;
+```bash
+pgslice fill <table> --ignore_duplications
+```
+
+
 ## Install
 
 pgslice is a command line tool. To install, run:
