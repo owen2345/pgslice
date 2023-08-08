@@ -11,6 +11,10 @@ module PgSlice
         queries << "ALTER TABLE #{table.intermediate_table} ADD PRIMARY KEY (ID);"
       end
 
+      table.index_defs.each do |index_def|
+        queries << make_index_def(index_def, table.intermediate_table)
+      end
+
       table.foreign_keys.each do |fk_def|
         queries << make_fk_def(fk_def, table.intermediate_table)
       end
