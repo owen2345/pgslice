@@ -3,6 +3,7 @@ module PgSlice
     desc "prep TABLE [COLUMN] [PERIOD]", "Create an intermediate table for partitioning"
     option :partition, type: :boolean, default: true, desc: "Partition the table"
     option :trigger_based, type: :boolean, default: false, desc: "Use trigger-based partitioning"
+    option :noindex, type: :boolean, default: false, desc: "Allows to skip table indexes to applied later"
     def prep(table, column=nil, period=nil)
       table = create_table(table)
       intermediate_table = table.intermediate_table
@@ -60,12 +61,18 @@ CREATE TABLE #{quote_table(intermediate_table)} (LIKE #{quote_table(table)} INCL
 COMMENT ON TABLE #{quote_table(intermediate_table)} IS 'column:#{column},period:#{period},cast:#{cast},version:#{version}';
         SQL
       else
-        queries << <<-SQL
-CREATE TABLE #{quote_table(intermediate_table)} (LIKE #{quote_table(table)} INCLUDING ALL);
-        SQL
 
-        table.foreign_keys.each do |fk_def|
-          queries << make_fk_def(fk_def, intermediate_table)
+        if options[:noindex]
+          queries << <<-SQL
+CREATE TABLE #{quote_table(intermediate_table)} (LIKE #{quote_table(table)} INCLUDING ALL EXCLUDING INDEXES);
+          SQL
+        else
+          queries << <<-SQL
+CREATE TABLE #{quote_table(intermediate_table)} (LIKE #{quote_table(table)} INCLUDING ALL);
+          SQL
+          table.foreign_keys.each do |fk_def|
+            queries << make_fk_def(fk_def, intermediate_table)
+          end
         end
       end
 
