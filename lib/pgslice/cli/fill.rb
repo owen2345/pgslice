@@ -87,7 +87,7 @@ module PgSlice
 /* #{i} of #{batch_count} */
 INSERT INTO #{quote_table(dest_table)} (#{fields})
     SELECT #{fields} FROM #{quote_table(source_table)}
-    WHERE #{where} #{options[:ignore_duplications] ? 'ON CONFLICT (id) DO NOTHING' : ''}
+    WHERE #{where} #{'ON CONFLICT (id) DO NOTHING' if options[:ignore_duplications]}
         SQL
 
         run_query(query)

@@ -47,11 +47,11 @@ CREATE TABLE #{quote_table(intermediate_table)} (LIKE #{quote_table(table)} INCL
         if version == 3
           index_defs = table.index_defs
           index_defs.each do |index_def|
-            queries << make_index_def(index_def, intermediate_table)
+            queries << make_index_def(index_def, intermediate_table) unless options[:noindex]
           end
 
           table.foreign_keys.each do |fk_def|
-            queries << make_fk_def(fk_def, intermediate_table)
+            queries << make_fk_def(fk_def, intermediate_table) unless options[:noindex]
           end
         end
 
@@ -61,18 +61,12 @@ CREATE TABLE #{quote_table(intermediate_table)} (LIKE #{quote_table(table)} INCL
 COMMENT ON TABLE #{quote_table(intermediate_table)} IS 'column:#{column},period:#{period},cast:#{cast},version:#{version}';
         SQL
       else
+        queries << <<-SQL
+CREATE TABLE #{quote_table(intermediate_table)} (LIKE #{quote_table(table)} INCLUDING ALL #{'EXCLUDING INDEXES' if options[:noindex]});
+        SQL
 
-        if options[:noindex]
-          queries << <<-SQL
-CREATE TABLE #{quote_table(intermediate_table)} (LIKE #{quote_table(table)} INCLUDING ALL EXCLUDING INDEXES);
-          SQL
-        else
-          queries << <<-SQL
-CREATE TABLE #{quote_table(intermediate_table)} (LIKE #{quote_table(table)} INCLUDING ALL);
-          SQL
-          table.foreign_keys.each do |fk_def|
-            queries << make_fk_def(fk_def, intermediate_table)
-          end
+        table.foreign_keys.each do |fk_def|
+          queries << make_fk_def(fk_def, intermediate_table) unless options[:noindex]
         end
       end
 
