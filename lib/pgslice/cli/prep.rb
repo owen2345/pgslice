@@ -4,6 +4,8 @@ module PgSlice
     option :partition, type: :boolean, default: true, desc: "Partition the table"
     option :trigger_based, type: :boolean, default: false, desc: "Use trigger-based partitioning"
     option :noindex, type: :boolean, default: false, desc: "Allows to skip table indexes to applied later"
+    option :primary_key, type: :boolean, default: false, desc: "Includes the primary key ID to the new table"
+
     def prep(table, column=nil, period=nil)
       table = create_table(table)
       intermediate_table = table.intermediate_table
@@ -68,6 +70,10 @@ CREATE TABLE #{quote_table(intermediate_table)} (LIKE #{quote_table(table)} INCL
         table.foreign_keys.each do |fk_def|
           queries << make_fk_def(fk_def, intermediate_table) unless options[:noindex]
         end
+      end
+
+      if options[:primary_key]
+        queries << "ALTER TABLE #{table.intermediate_table} ADD PRIMARY KEY (ID);"
       end
 
       if options[:partition] && !declarative

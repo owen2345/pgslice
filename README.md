@@ -10,14 +10,14 @@ Postgres partitioning as easy as pie. Works great for both new and existing tabl
 ### Prep     
 Indexes can be excluded while generating the new table for the faster table filling (table filling without indexes is way faster)
 ```bash
-pgslice prep <table> --no-partition --noindex
+pgslice prep <table> --noindex # Skips adding table indexes and foreign keys to the new table
+pgslice prep <table> --primary_key # Includes ID as the primary key to the new table
 ```
 
 ### Indexes    
-Indexes skipped while generating table can be added later (Once copied all data to the new table)
+Adds skipped indexes and foreign keys to the new table (Recommended to do it once copied all records to the new table)
 ```bash
 pgslice index <table>
-pgslice index <table> --primary_key # includes ID as the primary key as part of the indexes
 pgslice index <table> --print # Prints the indexes without performing them to be performed manually
 ```
 
