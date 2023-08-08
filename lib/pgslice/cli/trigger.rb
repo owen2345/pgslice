@@ -11,7 +11,8 @@ module PgSlice
       if options[:drop]
         run_query triggers_manager.drop_triggers
       else
-        run_query triggers_manager.build_triggers
+        log_sql triggers_manager.build_triggers
+        connection.exec triggers_manager.build_triggers
       end
     end
   end
