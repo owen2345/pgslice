@@ -8,6 +8,7 @@ module PgSlice
     option :start, type: :numeric, desc: "Primary key to start"
     option :where, desc: "Conditions to filter"
     option :sleep, type: :numeric, desc: "Seconds to sleep between batches"
+    option :ignore_duplications, type: :boolean, default: false, desc: "Allows to ignore duplicated rows with the same ID"
     def fill(table)
       table = create_table(table)
       source_table = create_table(options[:source_table]) if options[:source_table]
@@ -86,7 +87,7 @@ module PgSlice
 /* #{i} of #{batch_count} */
 INSERT INTO #{quote_table(dest_table)} (#{fields})
     SELECT #{fields} FROM #{quote_table(source_table)}
-    WHERE #{where}
+    WHERE #{where} #{options[:ignore_duplications] ? 'ON CONFLICT (id) DO NOTHING' : ''}
         SQL
 
         run_query(query)
