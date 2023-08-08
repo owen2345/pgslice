@@ -17,6 +17,7 @@ pgslice prep <table> --no-partition --noindex
 Indexes skipped while generating table can be added later (Once copied all data to the new table)
 ```bash
 pgslice index <table>
+pgslice index <table> --primary_key # includes ID as the primary key as part of the indexes
 pgslice index <table> --print # Prints the indexes without performing them to be performed manually
 ```
 
