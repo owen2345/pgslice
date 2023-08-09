@@ -15,7 +15,7 @@ module PgSlice
       end
 
       if options[:print]
-        say queries
+        queries.map { |q| log_sql(q) }
       else
         run_queries(queries)
       end
