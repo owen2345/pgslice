@@ -14,7 +14,7 @@ module PgSlice
         queries << make_fk_def(fk_def, table.intermediate_table)
       end
 
-      if options[:print] == 'true'
+      if options[:print]
         say queries
       else
         run_queries(queries)
