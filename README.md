@@ -22,6 +22,13 @@ pgslice index <table> --print # Prints the indexes without performing them to be
 pgslice index <table> --concurrent # Forces indexes to be added concurrently
 ```
 
+### Rename indexes
+Renames intermediate indexes as the official names (`<index>_intermediate` into `<index>`) and the old indexes as the retired indexes (`<index>` into `<index>_retired`)
+```bash
+pgslice rename_index <table>
+pgslice rename_index <table> --print # Prints the renaming without performing them to be performed manually
+```
+
 ### Triggers    
 Triggers can be added via:
 ```sh

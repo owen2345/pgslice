@@ -12,7 +12,7 @@ module PgSlice
       end
 
       table.index_defs.each do |index_def|
-        index = make_index_def(index_def, table.intermediate_table)
+        index = make_index_def(index_def, table.intermediate_table, suffix: '_intermediate')
         index = index.sub('CREATE INDEX ', 'CREATE INDEX CONCURRENTLY ') if options[:concurrent]
         queries << index
       end

@@ -169,8 +169,16 @@ module PgSlice
       Table.new(schema, name)
     end
 
-    def make_index_def(index_def, table)
-      index_def.sub(/ ON \S+ USING /, " ON #{quote_table(table)} USING ").sub(/ INDEX .+ ON /, " INDEX ON ") + ";"
+    def make_index_def(index_def, table, suffix: nil)
+      index = index_def.sub(/ ON \S+ USING /, " ON #{quote_table(table)} USING ")
+      index = suffix ? index.sub(/ INDEX (.+) ON /, " INDEX \\1#{suffix} ON ") : index.sub(/ INDEX .+ ON /, " INDEX ON ")
+      index + ";"
+    end
+
+    def renamed_index(index_def, suffix: nil, remove_suffix: nil)
+      index_name = index_def.scan(/ INDEX (.+) ON /).first.first
+      renamed = suffix ? "#{index_name}#{suffix}" : index_name.sub(remove_suffix, '')
+      "ALTER INDEX IF EXISTS #{index_name} RENAME TO #{renamed};"
     end
 
     def make_fk_def(fk_def, table)
