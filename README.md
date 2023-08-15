@@ -19,6 +19,7 @@ Adds skipped indexes and foreign keys to the new table (Recommended to do it onc
 ```bash
 pgslice index <table>
 pgslice index <table> --print # Prints the indexes without performing them to be performed manually
+pgslice index <table> --concurrent # Forces indexes to be added concurrently
 ```
 
 ### Triggers    
