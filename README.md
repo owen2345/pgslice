@@ -6,6 +6,44 @@ Postgres partitioning as easy as pie. Works great for both new and existing tabl
 
 [![Build Status](https://github.com/ankane/pgslice/workflows/build/badge.svg?branch=master)](https://github.com/ankane/pgslice/actions)
 
+## Customizations
+### Prep     
+Indexes can be excluded while generating the new table for the faster table filling (table filling without indexes is way faster)
+```bash
+pgslice prep <table> --noindex # Skips adding table indexes and foreign keys to the new table
+pgslice prep <table> --primary_key # Includes ID as the primary key to the new table
+```
+
+### Indexes    
+Adds skipped indexes and foreign keys to the new table (Recommended to do it once copied all records to the new table)
+```bash
+pgslice index <table>
+pgslice index <table> --print # Prints the indexes without performing them to be performed manually
+pgslice index <table> --concurrent # Forces indexes to be added concurrently
+```
+
+### Rename indexes
+Renames intermediate indexes as the official names (`<index>_intermediate` into `<index>`) and the old indexes as the retired indexes (`<index>` into `<index>_retired`)
+```bash
+pgslice rename_index <table>
+pgslice rename_index <table> --print # Prints the renaming without performing them to be performed manually
+```
+
+### Triggers    
+Triggers can be added via:
+```sh
+pgslice trigger <table> # syncs table records (create/update/delete) to <table>_intermediate
+pgslice trigger <table> --swapped # if table was already swapped: syncs current table to <table>_retired table
+pgslice trigger <table> --drop # drops the exist trigger
+```
+
+### Fill     
+Added the ability to ignore duplicated records while filling records caused by triggers (syncing) using `ON CONFLICT (id) DO NOTHING`;
+```bash
+pgslice fill <table> --ignore_duplications
+```
+
+
 ## Install
 
 pgslice is a command line tool. To install, run:
