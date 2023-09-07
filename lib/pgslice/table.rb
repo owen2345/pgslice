@@ -16,7 +16,7 @@ module PgSlice
     end
 
     def columns
-      execute("SELECT column_name FROM information_schema.columns WHERE table_schema = $1 AND table_name = $2", [schema, name]).map{ |r| r["column_name"] }
+      execute("SELECT column_name FROM information_schema.columns WHERE table_schema = $1 AND table_name = $2 AND is_generated = 'NEVER'", [schema, name]).map{ |r| r["column_name"] }
     end
 
     # http://www.dbforums.com/showthread.php?1667561-How-to-list-sequences-and-the-columns-by-SQL
@@ -178,12 +178,16 @@ module PgSlice
       PgSlice::CLI.instance.send(:execute, *args)
     end
 
+    def escape_literal(value)
+      PgSlice::CLI.instance.send(:escape_literal, value)
+    end
+
     def quote_ident(value)
       PG::Connection.quote_ident(value)
     end
 
     def regclass
-      "'#{quote_table}'::regclass"
+      "#{escape_literal(quote_table)}::regclass"
     end
 
     def sql_date(time, cast, add_cast = true)
@@ -192,7 +196,7 @@ module PgSlice
       else
         fmt = "%Y-%m-%d"
       end
-      str = "'#{time.strftime(fmt)}'"
+      str = escape_literal(time.strftime(fmt))
       add_cast ? "#{str}::#{cast}" : str
     end
   end

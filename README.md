@@ -146,17 +146,17 @@ pgslice add_partitions visits --intermediate --past 1 --future 1
 ```sql
 BEGIN;
 
-CREATE TABLE "public"."visits_202108" PARTITION OF "public"."visits_intermediate" FOR VALUES FROM ('2021-08-01') TO ('2021-09-01');
+CREATE TABLE "public"."visits_202208" PARTITION OF "public"."visits_intermediate" FOR VALUES FROM ('2022-08-01') TO ('2022-09-01');
 
-ALTER TABLE "public"."visits_202108" ADD PRIMARY KEY ("id");
+ALTER TABLE "public"."visits_202208" ADD PRIMARY KEY ("id");
 
-CREATE TABLE "public"."visits_202109" PARTITION OF "public"."visits_intermediate" FOR VALUES FROM ('2021-09-01') TO ('2021-10-01');
+CREATE TABLE "public"."visits_202209" PARTITION OF "public"."visits_intermediate" FOR VALUES FROM ('2022-09-01') TO ('2022-10-01');
 
-ALTER TABLE "public"."visits_202109" ADD PRIMARY KEY ("id");
+ALTER TABLE "public"."visits_202209" ADD PRIMARY KEY ("id");
 
-CREATE TABLE "public"."visits_202110" PARTITION OF "public"."visits_intermediate" FOR VALUES FROM ('2021-10-01') TO ('2021-11-01');
+CREATE TABLE "public"."visits_202210" PARTITION OF "public"."visits_intermediate" FOR VALUES FROM ('2022-10-01') TO ('2022-11-01');
 
-ALTER TABLE "public"."visits_202110" ADD PRIMARY KEY ("id");
+ALTER TABLE "public"."visits_202210" ADD PRIMARY KEY ("id");
 
 COMMIT;
 ```
@@ -169,17 +169,17 @@ pgslice fill visits
 /* 1 of 3 */
 INSERT INTO "public"."visits_intermediate" ("id", "user_id", "ip", "created_at")
     SELECT "id", "user_id", "ip", "created_at" FROM "public"."visits"
-    WHERE "id" > 0 AND "id" <= 10000 AND "created_at" >= '2021-08-01'::date AND "created_at" < '2021-11-01'::date
+    WHERE "id" > 0 AND "id" <= 10000 AND "created_at" >= '2022-08-01'::date AND "created_at" < '2022-11-01'::date
 
 /* 2 of 3 */
 INSERT INTO "public"."visits_intermediate" ("id", "user_id", "ip", "created_at")
     SELECT "id", "user_id", "ip", "created_at" FROM "public"."visits"
-    WHERE "id" > 10000 AND "id" <= 20000 AND "created_at" >= '2021-08-01'::date AND "created_at" < '2021-11-01'::date
+    WHERE "id" > 10000 AND "id" <= 20000 AND "created_at" >= '2022-08-01'::date AND "created_at" < '2022-11-01'::date
 
 /* 3 of 3 */
 INSERT INTO "public"."visits_intermediate" ("id", "user_id", "ip", "created_at")
     SELECT "id", "user_id", "ip", "created_at" FROM "public"."visits"
-    WHERE "id" > 20000 AND "id" <= 30000 AND "created_at" >= '2021-08-01'::date AND "created_at" < '2021-11-01'::date
+    WHERE "id" > 20000 AND "id" <= 30000 AND "created_at" >= '2022-08-01'::date AND "created_at" < '2022-11-01'::date
 ```
 
 ```sh
@@ -187,11 +187,11 @@ pgslice analyze visits
 ```
 
 ```sql
-ANALYZE VERBOSE "public"."visits_202108";
+ANALYZE VERBOSE "public"."visits_202208";
 
-ANALYZE VERBOSE "public"."visits_202109";
+ANALYZE VERBOSE "public"."visits_202209";
 
-ANALYZE VERBOSE "public"."visits_202110";
+ANALYZE VERBOSE "public"."visits_202210";
 
 ANALYZE VERBOSE "public"."visits_intermediate";
 ```
@@ -255,24 +255,19 @@ WHERE
 Back up and drop older partitions each day, month, or year.
 
 ```sh
-pg_dump -c -Fc -t <table>_202109 $PGSLICE_URL > <table>_202109.dump
-psql -c "DROP TABLE <table>_202109" $PGSLICE_URL
+pg_dump -c -Fc -t <table>_202209 $PGSLICE_URL > <table>_202209.dump
+psql -c "DROP TABLE <table>_202209" $PGSLICE_URL
 ```
 
 If you use [Amazon S3](https://aws.amazon.com/s3/) for backups, [s3cmd](https://github.com/s3tools/s3cmd) is a nice tool.
 
 ```sh
-s3cmd put <table>_202109.dump s3://<s3-bucket>/<table>_202109.dump
+s3cmd put <table>_202209.dump s3://<s3-bucket>/<table>_202209.dump
 ```
 
 ## Schema Updates
 
 Once a table is partitioned, make schema updates on the master table only (not partitions). This includes adding, removing, and modifying columns, as well as adding and removing indexes and foreign keys.
-
-A few exceptions are:
-
-- For Postgres 10, make index and foreign key updates on partitions only
-- For Postgres < 10, make index and foreign key updates on the master table and all partitions
 
 ## Additional Commands
 
@@ -310,7 +305,7 @@ SELECT * FROM
 WHERE
     user_id = 123 AND
     -- for performance
-    created_at >= '2021-09-01' AND created_at < '2021-09-02'
+    created_at >= '2022-09-01' AND created_at < '2022-09-02'
 ```
 
 For this to be effective, ensure `constraint_exclusion` is set to `partition` (the default value) or `on`.
@@ -319,32 +314,15 @@ For this to be effective, ensure `constraint_exclusion` is set to `partition` (t
 SHOW constraint_exclusion;
 ```
 
-### Writes
-
-Before Postgres 10, if you use `INSERT` statements with a `RETURNING` clause (as frameworks like Rails do), you’ll no longer receive the id of the newly inserted record(s) back. If you need this, you can either:
-
-1. Insert directly into the partition
-2. Get the value before the insert with `SELECT nextval('sequence_name')` (for multiple rows, append `FROM generate_series(1, n)`)
-
 ## Frameworks
 
 ### Rails
 
-For Postgres 10+, specify the primary key for partitioned models to ensure it’s returned.
+Specify the primary key for partitioned models to ensure it’s returned.
 
 ```ruby
 class Visit < ApplicationRecord
   self.primary_key = "id"
-end
-```
-
-Before Postgres 10, preload the value.
-
-```ruby
-class Visit < ApplicationRecord
-  before_create do
-    self.id ||= self.class.connection.select_all("SELECT nextval('#{self.class.sequence_name}')").first["nextval"]
-  end
 end
 ```
 
@@ -365,10 +343,6 @@ pgslice swap <table>
 ## Triggers
 
 Triggers aren’t copied from the original table. You can set up triggers on the intermediate table if needed. Note that Postgres doesn’t support `BEFORE / FOR EACH ROW` triggers on partitioned tables.
-
-## Declarative Partitioning
-
-Postgres 10 introduces [declarative partitioning](https://www.postgresql.org/docs/10/static/ddl-partitioning.html#ddl-partitioning-declarative). A major benefit is `INSERT` statements with a `RETURNING` clause work as expected. If you prefer to use trigger-based partitioning instead (not recommended), pass the `--trigger-based` option to the `prep` command.
 
 ## Data Protection
 
@@ -429,7 +403,6 @@ gem specific_install https://github.com/ankane/pgslice.git
 ## Reference
 
 - [PostgreSQL Manual](https://www.postgresql.org/docs/current/static/ddl-partitioning.html)
-- [PostgreSQL Wiki](https://wiki.postgresql.org/wiki/Table_partitioning)
 
 ## Related Projects
 
@@ -461,8 +434,8 @@ bundle exec rake test
 To test against different versions of Postgres with Docker, use:
 
 ```sh
-docker run -p=8000:5432 postgres:10
+docker run -p=8000:5432 postgres:14
 TZ=Etc/UTC PGSLICE_URL=postgres://postgres@localhost:8000/postgres bundle exec rake
 ```
 
-On Mac, you must use [Docker for Mac](https://www.docker.com/docker-mac) for the port mapping to localhost to work.
+On Mac, you must use [Docker Desktop](https://www.docker.com/products/docker-desktop/) for the port mapping to localhost to work.

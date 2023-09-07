@@ -5,7 +5,8 @@ module PgSlice
     option :trigger_based, type: :boolean, default: false, desc: "Use trigger-based partitioning"
     option :noindex, type: :boolean, default: false, desc: "Allows to skip table indexes to applied later"
     option :primary_key, type: :boolean, default: false, desc: "Includes the primary key ID to the new table"
-
+    option :test_version, type: :numeric, hide: true
+    
     def prep(table, column=nil, period=nil)
       table = create_table(table)
       intermediate_table = table.intermediate_table
@@ -27,23 +28,23 @@ module PgSlice
       queries = []
 
       # version summary
-      # 1. trigger-based
-      # 2. declarative, with indexes and foreign keys on child tables
-      # 3. declarative, with indexes and foreign keys on parent table
-      version =
-        if options[:trigger_based] || server_version_num < 100000
-          1
-        elsif server_version_num < 110000
-          2
-        else
-          3
-        end
+      # 1. trigger-based (pg9)
+      # 2. declarative, with indexes and foreign keys on child tables (pg10)
+      # 3. declarative, with indexes and foreign keys on parent table (pg11+)
+      version = options[:test_version] || (options[:trigger_based] ? 1 : 3)
 
       declarative = version > 1
 
       if declarative && options[:partition]
+        including = ["DEFAULTS", "CONSTRAINTS", "STORAGE", "COMMENTS", "STATISTICS"]
+        if server_version_num >= 120000
+          including << "GENERATED"
+        end
+        if server_version_num >= 140000
+          including << "COMPRESSION"
+        end
         queries << <<-SQL
-CREATE TABLE #{quote_table(intermediate_table)} (LIKE #{quote_table(table)} INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING STORAGE INCLUDING COMMENTS) PARTITION BY RANGE (#{quote_ident(column)});
+CREATE TABLE #{quote_table(intermediate_table)} (LIKE #{quote_table(table)} #{including.map { |v| "INCLUDING #{v}" }.join(" ")}) PARTITION BY RANGE (#{quote_ident(column)});
         SQL
 
         if version == 3

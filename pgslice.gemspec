@@ -16,8 +16,8 @@ Gem::Specification.new do |spec|
   spec.bindir        = "exe"
   spec.executables   = ["pgslice"]
 
-  spec.required_ruby_version = ">= 2.5"
+  spec.required_ruby_version = ">= 2.7"
 
+  spec.add_dependency "pg", ">= 1"
   spec.add_dependency "thor"
-  spec.add_dependency "pg", ">= 0.18.2"
 end

@@ -1,3 +1,14 @@
+## 0.6.1 (2023-04-26)
+
+- Fixed `uninitialized constant` error
+
+## 0.6.0 (2023-04-22)
+
+- Added support for generated columns
+- Added compression and extended statistics to `prep`
+- Dropped support for Ruby < 2.7
+- Dropped support for Postgres < 11
+
 ## 0.5.0 (2023-01-29)
 
 - Dropped support for Ruby < 2.5

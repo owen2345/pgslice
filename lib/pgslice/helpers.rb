@@ -35,10 +35,14 @@ module PgSlice
         @schema = Array(params.delete("schema") || "public")[0]
         uri.query = params.any? ? URI.encode_www_form(params) : nil
 
-        ENV["PGCONNECT_TIMEOUT"] ||= "1"
+        ENV["PGCONNECT_TIMEOUT"] ||= "3"
         conn = PG::Connection.new(uri.to_s)
         conn.set_notice_processor do |message|
           say message
+        end
+        @server_version_num = conn.exec("SHOW server_version_num")[0]["server_version_num"].to_i
+        if @server_version_num < 110000
+          abort "This version of pgslice requires Postgres 11+"
         end
         conn
       end
@@ -86,7 +90,8 @@ module PgSlice
     end
 
     def server_version_num
-      execute("SHOW server_version_num")[0]["server_version_num"].to_i
+      connection # ensure called first
+      @server_version_num
     end
 
     # helpers
@@ -97,7 +102,7 @@ module PgSlice
       else
         fmt = "%Y-%m-%d"
       end
-      str = "'#{time.strftime(fmt)}'"
+      str = escape_literal(time.strftime(fmt))
       add_cast ? "#{str}::#{cast}" : str
     end
 
@@ -152,6 +157,10 @@ module PgSlice
       PG::Connection.quote_ident(value)
     end
 
+    def escape_literal(value)
+      connection.escape_literal(value)
+    end
+
     def quote_table(table)
       table.quote_table
     end
@@ -183,6 +192,13 @@ module PgSlice
 
     def make_fk_def(fk_def, table)
       "ALTER TABLE #{quote_table(table)} ADD #{fk_def};"
+    end
+
+    def make_stat_def(stat_def, table)
+      m = /ON (.+) FROM/.match(stat_def)
+      # errors on duplicate names, but should be rare
+      stat_name = "#{table}_#{m[1].split(", ").map { |v| v.gsub(/\W/i, "") }.join("_")}_stat"
+      stat_def.sub(/ FROM \S+/, " FROM #{quote_table(table)}").sub(/ STATISTICS .+ ON /, " STATISTICS #{quote_ident(stat_name)} ON ") + ";"
     end
   end
 end
